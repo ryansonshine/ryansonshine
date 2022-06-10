@@ -1,29 +1,26 @@
-name: Dependabot auto-merge
+name: Dependabot Automerge
 
 on:
   workflow_call:
 
 jobs:
-  approve:
+  worker:
     runs-on: ubuntu-latest
-    if: ${{ github.actor == 'dependabot[bot]' }}
+    if: github.actor == 'dependabot[bot]'
     steps:
-      - name: Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@v1.1.1
+      - name: Wait for status checks
+        id: waitforstatuschecks
+        uses: WyriHaximus/github-action-wait-for-status@v1.2.0
         with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Approve a PR
-        run: gh pr review --approve "$PR_URL"
+          ignoreActions: worker,WIP
+          checkInterval: 300
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  merge:
-    runs-on: ubuntu-latest
-    if: ${{ github.actor == 'dependabot[bot]' }}
-    steps:
-      - name: Enable auto-merge for Dependabot PRs
-        run: gh pr merge --auto --squash "$PR_URL"
+
+      - name: Automerge
+        uses: pascalgn/automerge-action@v0.15.3
+        if: steps.waitforstatuschecks.outputs.status == 'success'
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          MERGE_METHOD: "squash"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MERGE_DELETE_BRANCH: true
