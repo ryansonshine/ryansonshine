@@ -2,31 +2,26 @@ name: Dependabot Automerge
 
 on:
   workflow_call:
+    secrets:
+      PAT_TOKEN:
+        required: true
 
 jobs:
-  automerge:
-    name: Automerge PRs
+  dependabot:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
     steps:
+      - name: Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v1.3.1
       - name: Approve PR
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Wait for status checks
-        id: waitforstatuschecks
-        uses: WyriHaximus/github-action-wait-for-status@v1.4
-        with:
-          ignoreActions: Automerge PRs,CodeQL,codecov
-          checkInterval: 20
-          waitForCheck: true
+      - name: Enable auto-merge for Dependabot PRs
+        if: ${{ steps.dependabot-metadata.outputs.update-type != 'version-update:semver-major' }}
+        run: gh pr merge --auto --squash "$PR_URL"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Merge
-        uses: pascalgn/automerge-action@v0.15.3
-        if: steps.waitforstatuschecks.outputs.status == 'success'
-        env:
-          MERGE_METHOD: "squash"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MERGE_DELETE_BRANCH: true
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
