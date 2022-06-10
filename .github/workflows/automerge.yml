@@ -4,7 +4,8 @@ on:
   workflow_call:
 
 jobs:
-  worker:
+  automerge:
+    name: Automerge PRs
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
@@ -17,13 +18,12 @@ jobs:
         id: waitforstatuschecks
         uses: WyriHaximus/github-action-wait-for-status@v1.4
         with:
-          ignoreActions: worker,WIP
-          checkInterval: 300
+          ignoreActions: Automerge PRs,CodeQL,codecov
+          checkInterval: 20
           waitForCheck: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Automerge
+      - name: Merge
         uses: pascalgn/automerge-action@v0.15.3
         if: steps.waitforstatuschecks.outputs.status == 'success'
         env:
